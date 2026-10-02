@@ -8,6 +8,8 @@ mode_draw: DB 2
 
 ; *****************************************************************************
 ; ApplyDrawMode — динамически перенастраивает графический код под выбранный mode_draw
+;   Вход:   Переменная [mode_draw] (0, 1 или 2)
+;   Портит: A, HL, BC
 ; *****************************************************************************
 ApplyDrawMode:
     ld   a, (mode_draw)
@@ -23,15 +25,18 @@ _set_mode_0:
     ld   (SMC_SetPoint), a
     ld   (SMC_DrawVLine), a
     ld   (SMC_HLine_First), a
-    ld   (SMC_HLine_Full), a
+;    ld   (SMC_HLine_Full), a
     ld   (SMC_HLine_Last), a
     ld   (SMC_HLine_OneByte), a
 
-    ; Настройка целых байт горизонтальной линии: прямая запись 0x00
-    ld   a, 0x36            ; Код команды: ld (hl), n
-    ld   (SMC_HLine_Opcode), a
-    ld   a, 0x00            ; n = 0x00
-    ld   (SMC_HLine_Whole), a 
+    ; Направляем горизонтальную линию на ПРЯМОЙ цикл (Абсолютный JP)
+    ld   a, 0xC3            ; Код команды: jp nnnn
+    ld   (SMC_HLine_LoopSelect), a
+    ld   hl, _whole_loop_direct
+    ld   (SMC_HLine_LoopSelect + 1), hl
+
+    ld   a, 0x00            ; Заливаем чистыми нулями
+    ld   (SMC_HLine_Whole_Val), a 
     ret
 
 ; --- РЕЖИМ 1: Рисование единицами (Стандартная прорисовка) ---
@@ -40,15 +45,18 @@ _set_mode_1:
     ld   (SMC_SetPoint), a
     ld   (SMC_DrawVLine), a
     ld   (SMC_HLine_First), a
-    ld   (SMC_HLine_Full), a
+;    ld   (SMC_HLine_Full), a
     ld   (SMC_HLine_Last), a
     ld   (SMC_HLine_OneByte), a
 
-    ; Настройка целых байт горизонтальной линии: прямая запись 0xFF
-    ld   a, 0x36            ; Код команды: ld (hl), n
-    ld   (SMC_HLine_Opcode), a
-    ld   a, 0xFF            ; n = 0xFF
-    ld   (SMC_HLine_White_Byte), a ; Используем уникальную метку для байта
+    ; Направляем горизонтальную линию на ПРЯМОЙ цикл (Абсолютный JP)
+    ld   a, 0xC3            ; Код команды: jp nnnn
+    ld   (SMC_HLine_LoopSelect), a
+    ld   hl, _whole_loop_direct
+    ld   (SMC_HLine_LoopSelect + 1), hl
+
+    ld   a, 0xFF            ; Заливаем единицами
+    ld   (SMC_HLine_Whole_Val), a
     ret
 
 ; --- РЕЖИМ 2: Рисование через инверсию (XOR) ---
@@ -57,26 +65,20 @@ _set_mode_2:
     ld   (SMC_SetPoint), a
     ld   (SMC_DrawVLine), a
     ld   (SMC_HLine_First), a
-    ld   (SMC_HLine_Full), a
+;    ld   (SMC_HLine_Full), a
     ld   (SMC_HLine_Last), a
     ld   (SMC_HLine_OneByte), a
 
-    ; ЭКСТРЕМАЛЬНОЕ ИСПРАВЛЕНИЕ ДЛЯ XOR:
-    ; Вместо "ld (hl), n" (0x36) мы превращаем этот участок в команду "xor (hl)" (0xAE)
-    ; и "ld (hl), a" (0x77). Чтобы уложиться ровно в те же 3 байта в памяти, 
-    ; мы перепишем сам цикл горизонтальной линии, сделав его универсальным.
-    ld   a, 0xAE            ; Код команды: xor (hl)
-    ld   (SMC_HLine_Opcode), a
-    ld   a, 0x77            ; Код команды: ld (hl), a
-    ld   (SMC_HLine_Whole), a
+    ; НАДЁЖНОЕ ИСПРАВЛЕНИЕ: Направляем горизонтальную линию на ЧЕСТНЫЙ XOR-цикл
+    ld   a, 0xC3            ; Код команды: jp nnnn
+    ld   (SMC_HLine_LoopSelect), a
+    ld   hl, _whole_loop_xor
+    ld   (SMC_HLine_LoopSelect + 1), hl
     ret
-
 
 
 ; *****************************************************************************
 ; SetPoint — ставит одиночную точку на экран
-;   Input:  B = Y (0..191), C = X (0..255)
-;   Портит: A, DE, HL
 ; *****************************************************************************
 SetPoint:
     ld   d, HIGH Table_H
@@ -100,7 +102,6 @@ SetPoint:
     ld   e, c
     ld   a, (de)            
 
-    ; 3. Проверка режима для инверсии маски в Режиме 0
     push bc
     ld   bc, (mode_draw)    
     ld   a, c               
@@ -118,7 +119,7 @@ SMC_SetPoint:
 
 
 ; *****************************************************************************
-; DrawHLine — БЕЗУПРЕЧНАЯ ГОРИЗОНТАЛЬНАЯ ЛИНИЯ
+; DrawHLine — ГОРИЗОНТАЛЬНАЯ ЛИНИЯ С ЧЕСТНЫМ СУПЕР-XOR ЦИКЛОМ
 ; *****************************************************************************
 DrawHLine:
     and  a
@@ -154,7 +155,6 @@ DrawHLine:
     pop  af                 
     ld   d, a               
 
-    ; Проверяем переходы (используем jp во избежание Target out of range)
     cp   b
     jp   c, _one_byte       
     jp   z, _one_byte_full  
@@ -187,30 +187,41 @@ SMC_HLine_First:
     sub  b
     ld   d, a               
 
-    ; --- Исправленный цикл заливки целых байт ---
-_whole_loop:
+; --- ДИСПЕТЧЕР ЦИКЛОВ (SMC динамически записывает сюда JP ветки А или Б) ---
+SMC_HLine_LoopSelect:
+    jp   _whole_loop_direct ; Резервируем 3 байта (Код 0xC3 и 16-битный адрес)
+
+; --- ВЕТКА А: Прямая заливка байт (для режимов OR и AND) ---
+_whole_loop_direct:
     ld   a, d
     cp   8
     jr   c, _last_byte      
     
-    ; Загружаем в аккумулятор значение для XOR-инверсии (все единицы)
     ld   a, 0xFF            
-    
-SMC_HLine_Opcode:
-    ld   (hl), a            ; В режимах 0 и 1 тут остаётся ld (hl), a (или мы меняем на xor (hl)?)
-                            ; Самый простой способ сделать честный XOR без каши с регистрами:
-                            ; Давайте оставим "ld a, 0xFF" и превратим команду ниже либо в "ld (hl), a", либо в "xor (hl) : ld (hl), a"!
-
-SMC_HLine_Whole EQU $-1     ; Второй байт команды (n или 0x77 - ld (hl), a)
-SMC_HLine_White_Byte EQU $-1 ; Ссылка на n для режима 1
-    nop                     ; Третий байт — предохранитель для выравнивания размера команд
-    
-    inc  l                  ; Переходим к следующему байту по горизонтали
+SMC_HLine_Whole_Val EQU $-1
+    ld   (hl), a         
+    inc  l                  
     
     ld   a, d
     sub  8
-    ld   d, a               ; Уменьшаем остаток длины
-    jr   _whole_loop
+    ld   d, a               
+    jr   _whole_loop_direct
+
+; --- ВЕТКА Б: Честная побайтовая XOR-инверсия (для режима 2) ---
+_whole_loop_xor:
+    ld   a, d
+    cp   8
+    jr   c, _last_byte      
+    
+    ld   a, (hl)            
+    xor  0xFF               
+    ld   (hl), a            
+    inc  l                  
+    
+    ld   a, d
+    sub  8
+    ld   d, a               
+    jr   _whole_loop_xor
 
 
     ; Рисуем финальный хвост
@@ -243,12 +254,11 @@ SMC_HLine_Last:
     ret
 
 _one_byte_full:
-    push hl
     ld   a, e
     ld   hl, MaskRightTable
     add  a, l
     ld   l, a
-    ld   a, (hl)
+    ld   a, (hl)            ; Считали маску в A
     
     push bc
     ld   b, a
@@ -259,44 +269,46 @@ _one_byte_full:
     cpl
 1:
     pop  bc
-    pop  hl
-SMC_HLine_Full:
-    or   (hl)               
+    or   (hl)               ; Применяем прямо к экрану (адрес HL не менялся)
     ld   (hl), a
     ret
 
-    ; --- Сценарий: Вся линия внутри одного байта ---
-_one_byte:
-    push hl                 
 
+    ; --- Сценарий: Вся линия внутри одного байта (ИСПРАВЛЕНО) ---
+_one_byte:
+    push hl                 ; [Стек: сохранили адрес экрана]
+
+    ; 1. Маска правого отсечения (от X до конца байта)
     ld   a, e
     ld   hl, MaskRightTable
     add  a, l
     ld   l, a
     ld   a, (hl)
-    ld   b, a               
+    ld   b, a               ; ЖЕЛЕЗНО: прячем маску правого края в B (стек не трогаем!)
 
+    ; 2. Маска левого отсечения (до конца линии: E + D)
     ld   a, e
     add  a, d               
     ld   hl, MaskLeftTable
     add  a, l
     ld   l, a
-    ld   a, (hl)            
+    ld   a, (hl)            ; A = маска левого отсечения
     
-    and  b                  
-    ld   b, a
+    and  b                  ; Вырезаем чистый кусок линии (A = маска левая AND маска правая)
+    ld   e, a               ; Прячем готовую маску отрезка в безопасный E
     
     ld   a, (mode_draw)
     and  a
-    ld   a, b               
-    jr   nz, 1f
-    cpl
-1:
-    pop  hl                 
+    ld   a, e               ; Восстановили маску отрезка в A
+    jr   nz, _skip_inv_ob
+    cpl                     ; Для режима 0 инвертируем
+_skip_inv_ob:
+    pop  hl                 ; [Стек: восстановили точный адрес экрана!]
 SMC_HLine_OneByte:
     or   (hl)               
     ld   (hl), a
-    ret
+    ret                     ; Безопасный возврат в DrawRect
+
 
 
 ; *****************************************************************************
@@ -359,7 +371,7 @@ SMC_DrawVLine:
 
 
 ; *****************************************************************************
-; DrawRect — рисует контур прямоугольника (БЕЗ ДЫР НА УГЛАХ В XOR)
+; DrawRect — рисует контур прямоугольника (Защита через индексные регистры)
 ;   Input:  B = Y (0..191) — верхний левый угол
 ;           C = X (0..255) — верхний левый угол
 ;           D = Ширина в пикселях (1..255)
@@ -367,103 +379,74 @@ SMC_DrawVLine:
 ;   Портит: A, BC, DE, HL
 ; *****************************************************************************
 DrawRect:
-    ld   a, d
-    and  a
-    ret  z                  ; Если ширина 0, выходим
-    ld   a, e
-    and  a
-    ret  z                  ; Если высота 0, выходим
-
-    push bc                 ; [Стек: исходные Y и X]
-    push de                 ; [Стек: исходные Y и X, Ширина и Высота]
-
-    ; --- 1. Рисуем полную верхнюю горизонтальную грань ---
-    ld   a, d               ; Длина линии = ширина (D)
-    call DrawHLine          
-
-    ; --- 2. Рисуем левую вертикальную грань (обрезанную на 1 с краёв) ---
-    pop  de
-    pop  bc
-    push bc                 ; Сохраняем оригинальные параметры
-    push de
-    
-    ld   a, e
-    cp   3                  ; Если высота < 3 пикселей, вертикальные грани вырождаются
-    jr   c, _skip_left_vline
-    
-    inc  b                  ; Y = Y + 1 (пропускаем верхний угол)
-    sub  2                  ; Высота = Высота - 2 (убираем верхнюю и нижнюю точки)
-    call DrawVLine          
-_skip_left_vline:
-
-    ; --- 3. Рисуем полную нижнюю горизонтальную грань ---
-    pop  de
-    pop  bc
+    ; Верхняя линия
     push bc
     push de
-    ld   a, b
-    add  a, e
-    dec  a                  
-    ld   b, a               ; Переместили Y на нижнюю строчку прямоугольника
-    ld   a, d               ; Длина = ширина (D)
-    call DrawHLine          
+    ld a, d
+    call DrawHLine
+    pop de
+    pop bc
 
-    ; --- 4. Рисуем правую вертикальную грань (обрезанную на 1 с краёв) ---
-    pop  de                 ; Восстановили чистые исходные D (ширина) и E (высота)
-    pop  bc                 ; Восстановили чистые исходные B (Y) и C (X)
-    
-    ld   a, e
-    cp   3                  ; Проверяем высоту
-    ret  c                  ; Если высота < 3, правая грань из-за обрезки углов не нужна
-    
+    ; Нижняя линия
+    push bc
     push de
-    ; Рассчитываем точное смещение по X для правой стены: X = X + ширина - 1
-    ld   a, c
-    add  a, d
-    dec  a
-    ld   c, a               ; C = точная X правой грани
+    ld a, b
+    add a, e
+    ld b, a
+    ld a, d
+    call DrawHLine
+    pop de
+    pop bc
     
-    inc  b                  ; Y = Y + 1 (пропускаем верхний угол)
-    pop  de
-    ld   a, e
-    sub  2                  ; Высота = Высота - 2
-    call DrawVLine          
+    ; Левая линия
+    push bc
+    push de
+    inc b
+    ld a, e
+    dec a
+    call DrawVLine
+    pop de
+    pop bc
+
+    ; Правая линия
+    ld a, c
+    add d
+    dec a
+    inc b
+    ld c, a
+    ld a, e
+    dec a
+    call DrawVLine
     
     ret
 
-
+    
 
 ; *****************************************************************************
+
 ; FillRect — закрашивает прямоугольник (через DrawHLine)
 ; *****************************************************************************
 FillRect:
     ld   a, d
     and  a
-    ret  z                  
+    ret  z
     ld   a, e
     and  a
-    ret  z                  
-
+    ret  z
 _row_loop:
-    push bc                 
-    push de                 
-
-    ld   a, d               
-    call DrawHLine          
-
-    pop  de                 
-    pop  bc                 
-
-    inc  b                  
-    dec  e                  
-    jr   nz, _row_loop      
+    push bc
+    push de
+    ld   a, d
+    call DrawHLine
+    pop  de
+    pop  bc
+    inc  b
+    dec  e
+    jr   nz, _row_loop
     ret
-
-
 ; =============================================================================
-; ТАБЛИЦЫ
+; ТАБЛИЦЫ (ALIGN 256 гарантирует младший байт 0x00)
 ; =============================================================================
-
     ALIGN 256
 BitTable:
     REPT 32
@@ -474,34 +457,34 @@ BitTable:
 Table_H:
 _Y  = 0
     DUP 192
-        DB 0x40 + ((_Y / 64) * 8) + (_Y % 8)
+    DB 0x40 + ((_Y / 64) * 8) + (_Y % 8)
 _Y  = _Y + 1
     EDUP
     REPT 64
-        DB 0
+    DB 0
     ENDR
 
     ALIGN 256
 Table_L:
 _Y  = 0
     DUP 192
-        DB ((_Y % 64) / 8) * 32
+    DB ((_Y % 64) / 8) * 32
 _Y  = _Y + 1
     EDUP
     REPT 64
-        DB 0
+    DB 0
     ENDR
 
     ALIGN 256
 MaskRightTable:
     DB 0xFF, 0x7F, 0x3F, 0x1F, 0x0F, 0x07, 0x03, 0x01
     REPT 248
-        DB 0
+    DB 0
     ENDR
 
     ALIGN 256
 MaskLeftTable:
     DB 0x00, 0x80, 0xC0, 0xE0, 0xF0, 0xF8, 0xFC, 0xFE, 0xFF
     REPT 247
-        DB 0
+    DB 0
     ENDR
