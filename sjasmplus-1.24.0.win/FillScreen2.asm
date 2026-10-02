@@ -55,34 +55,15 @@ SetPoint1:
     
     ld  e, a
     ld  d, 0        ; В DE теперь число А
-    
     ex  de, hl      ; Меняем местами: исходный HL ушел в DE, а число А теперь в HL!
-    
     add hl, hl      ; x2
     add hl, hl      ; x4
     add hl, hl      ; x8
     add hl, hl      ; x16
     add hl, hl      ; x32. Теперь в HL лежит (А * 32)
-    
     add hl, de      ; Прибавляем к HL (где А * 32) регистр DE (где лежит исходный HL).
                     ; Итог: в HL теперь правильный результат!
     
-;    ld   d, 0
-;    ld   e, a
-;    sla  e
-;    rl   d          ; de <- A * 2
-;    sla  e
-;    rl   d          ; de <- A * 4
-;    sla  e
-;    rl   d          ; de <- A * 8
-;    sla  e
-;    rl   d          ; dc <- A * 16
-;    sla  e
-;    rl   d          ; dc <- A * 32
-;    add  hl, de
-    
-    
-
     ; --- HL += (y / 64) * 2048 ---
     ld   a, b
     srl  a
