@@ -53,22 +53,19 @@ SetPoint1:
     srl  a
     srl  a              ; A = (y % 64) / 8
     
-    
     ld  e, a
-    ld  d, 0
-    push hl
-    ld h, d
-    ld l, e
-    add hl, hl
-    add hl, hl
-    add hl, hl
-    add hl, hl
-    add hl, hl
+    ld  d, 0        ; В DE теперь число А
     
-    ex de, hl
-    pop hl
+    ex  de, hl      ; Меняем местами: исходный HL ушел в DE, а число А теперь в HL!
     
-    add hl, de
+    add hl, hl      ; x2
+    add hl, hl      ; x4
+    add hl, hl      ; x8
+    add hl, hl      ; x16
+    add hl, hl      ; x32. Теперь в HL лежит (А * 32)
+    
+    add hl, de      ; Прибавляем к HL (где А * 32) регистр DE (где лежит исходный HL).
+                    ; Итог: в HL теперь правильный результат!
     
 ;    ld   d, 0
 ;    ld   e, a
