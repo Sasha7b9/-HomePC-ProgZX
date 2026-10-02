@@ -4,7 +4,7 @@
 
 Start:
 
-    call ApplyDrawMode
+    call ApplyDrawMode   
 
 ; *** –исуем пр€моугольники
     ld bc, 0x0000   ; B = Y (16), C = X (16) Ч начальный левый верхний угол
@@ -156,19 +156,9 @@ Start:
     jr nz, .loop_line_hor2
 
     ret
-    
-Delay:
-    push bc
-    ld bc, 0xFFF
-Delay1:
-    dec bc
-    ld a,b
-    or c
-    jr nz, Delay1
-    pop bc
-    ret
-    
+   
     include GraphLib.asm
+    include UtilsLib.asm
 
 program_length = $-Start
 
