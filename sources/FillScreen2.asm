@@ -63,17 +63,19 @@ Start:
     jr   nz, .loop_fill  ; Если не ноль, переходим к следующему
 
 ; *** Рисуем горизонтальные линии
-    ld bc, 0x4000
+    ld bc, 0x5020
     ld a, 1
 .loop_line_h:
     push af
     push bc
     call DrawHLine
     pop bc
+    dec c
     inc b
     pop af
     inc a
-    cp 50
+    inc a
+    cp 51
     jr nz, .loop_line_h
 
     dec a
@@ -83,8 +85,10 @@ Start:
     push bc
     call DrawHLine
     pop bc
-    inc b
+    inc c
+    inc b   
     pop af
+    dec a
     dec a
     jr nz, .loop_line_h2
     
