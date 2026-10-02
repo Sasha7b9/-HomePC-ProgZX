@@ -155,11 +155,15 @@ Start:
     dec a
     jr nz, .loop_line_hor2
     
-; Рисуем 100 произвольных прямоугольников
-    ld a, 100
+; Рисуем произвольные прямоугольники
+    ld hl, 10000
 .loop_rects:
+    push hl
     call DrawRandomRect
-    dec a
+    pop hl
+    dec hl
+    ld a, h
+    or l
     jr nz, .loop_rects
 
     ret
