@@ -44,7 +44,7 @@ SetPoint1:
 ;    and  63             ; A = y % 64
     and  7              ; A = (y % 64) % 8
     ld   h, a
-    ld   l, 0
+    ld   l, 0       
 
     ; --- DE = ((y % 64) / 8) * 32 ---
     ld   a, b
@@ -52,19 +52,39 @@ SetPoint1:
     srl  a
     srl  a
     srl  a              ; A = (y % 64) / 8
-    ld   d, 0
-    ld   e, a
-    sla  e
-    rl   d
-    sla  e
-    rl   d
-    sla  e
-    rl   d
-    sla  e
-    rl   d
-    sla  e
-    rl   d
-    add  hl, de
+    
+    
+    ld  e, a
+    ld  d, 0
+    push hl
+    ld h, d
+    ld l, e
+    add hl, hl
+    add hl, hl
+    add hl, hl
+    add hl, hl
+    add hl, hl
+    
+    ld de, hl
+    pop hl
+    
+    add hl, de
+    
+;    ld   d, 0
+;    ld   e, a
+;    sla  e
+;    rl   d          ; de <- A * 2
+;    sla  e
+;    rl   d          ; de <- A * 4
+;    sla  e
+;    rl   d          ; de <- A * 8
+;    sla  e
+;    rl   d          ; dc <- A * 16
+;    sla  e
+;    rl   d          ; dc <- A * 32
+;    add  hl, de
+    
+    
 
     ; --- HL += (y / 64) * 2048 ---
     ld   a, b
