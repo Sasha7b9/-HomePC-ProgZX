@@ -154,8 +154,47 @@ Start:
     dec a
     dec a
     jr nz, .loop_line_hor2
+    
+; Рисуем 100 произвольных прямоугольников
+    ld a, 100
+.loop_rects:
+    call DrawRandomRect
+    dec a
+    jr nz, .loop_rects
 
     ret
+
+DrawRandomRect:
+    push af
+    
+    ; --- 1. Генерируем безопасный Y и Высоту ---
+    call GetRandom
+    and  63                 ; Ограничиваем Y диапазоном 0..63
+    add  a, 30              ; Сдвигаем чуть ниже (Y = 30..93)
+    ld   b, a               ; B = Y
+    
+    call GetRandom
+    and  63                 ; Ограничиваем высоту диапазоном 0..63
+    inc  a                  ; Защита от нуля (высота минимум 1 пиксель)
+    ld   e, a               ; E = Высота
+    ; Максимальный Y нижней грани: 93 + 64 = 157 (строго внутри экрана 191!)
+
+    ; --- 2. Генерируем безопасный X и Ширину ---
+    call GetRandom
+    and  127                ; Ограничиваем X диапазоном 0..127
+    ld   c, a               ; C = X
+    
+    call GetRandom
+    and  127                ; Ограничиваем ширину диапазоном 0..127
+    inc  a                  ; Защита от нуля (ширина минимум 1 пиксель)
+    ld   d, a               ; D = Ширина
+    ; Максимальный X правой грани: 127 + 128 = 255 (строго внутри экрана!)
+
+    call DrawRect
+    
+    pop  af
+    ret
+
    
     include GraphLib.asm
     include UtilsLib.asm
