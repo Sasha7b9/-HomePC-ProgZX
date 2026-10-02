@@ -63,6 +63,36 @@ Start:
     ; --- Уменьшаем счётчик и проверяем цикл ---
     dec  h          ; Уменьшаем количество оставшихся прямоугольников
     jr   nz, .loop_fill  ; Если не ноль, переходим к следующему
+    
+; *** Рисуем вертикальные линии
+    ld bc, 0x8000
+    ld a, 1
+.loop_line_v:
+    push af
+    push bc
+    call DrawVLine
+    pop bc
+    inc c
+    dec b
+    pop af
+    inc a
+    inc a
+    cp 51
+    jr nz, .loop_line_v
+
+    dec a
+
+.loop_line_v2:
+    push af
+    push bc
+    call DrawVLine
+    pop bc
+    inc c
+    inc b   
+    pop af
+    dec a
+    dec a
+    jr nz, .loop_line_v2
 
 ; *** Рисуем горизонтальные линии
     ld bc, 0x5020
@@ -93,37 +123,7 @@ Start:
     dec a
     dec a
     jr nz, .loop_line_h2
-
-; *** Рисуем вертикальные линии
-    ld bc, 0x8000
-    ld a, 1
-.loop_line_v:
-    push af
-    push bc
-    call DrawVLine
-    pop bc
-    inc c
-    dec b
-    pop af
-    inc a
-    inc a
-    cp 51
-    jr nz, .loop_line_v
-
-    dec a
-
-.loop_line_v2:
-    push af
-    push bc
-    call DrawVLine
-    pop bc
-    inc c
-    inc b   
-    pop af
-    dec a
-    dec a
-    jr nz, .loop_line_v2
-    
+  
     ret
     
 Delay:
