@@ -111,7 +111,7 @@ _sprite_next_line:
     pop  bc                 ; [Стек: восстановили счётчик строк и Y]
     inc  b                  ; Y = Y + 1 (переходим на следующую строку экрана вниз)
     dec  c                  ; Уменьшаем счётчик строк (от 16 до 0)
-    white_spr_loop EQU $
+white_spr_loop EQU $
     jr   nz, _sprite_line_loop
 
     ret
@@ -185,7 +185,6 @@ Delay_Frame:
     push bc
     ld   bc, 0x1AFF
 .d_loop:
-    white_delay EQU $
     dec  bc
     ld   a, b
     or   c
@@ -193,18 +192,11 @@ Delay_Frame:
     pop  bc
     ret
 
-; Подключаем графику пришельца
-Sprite_Alien:
-    DB 0x03, 0xC0, 0x0F, 0xF0, 0x1E, 0x78, 0x3C, 0x3C
-    DB 0x7F, 0xFE, 0x6D, 0xB6, 0x7F, 0xFE, 0x3E, 0x7C
-    DB 0x1F, 0xF8, 0x0C, 0x30, 0x1E, 0x78, 0x33, 0xCC
-    DB 0x61, 0x86, 0x40, 0x02, 0xC0, 0x03, 0xC0, 0x03
-
     include GraphLib.asm
 
 program_length = $-Start
 
     include TapLib.asm
-    MakeTape ZXSPECTRUM48, "fill_scr.tap", "FILL_SCR", Start, program_length, Start
+    MakeTape ZXSPECTRUM48, "sprites.tap", "sprites", Start, program_length, Start
 
 

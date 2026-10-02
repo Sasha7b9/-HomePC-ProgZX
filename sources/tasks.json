@@ -1,0 +1,26 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "sjasmplus: build",
+            "type": "shell",
+            "command": "sjasmplus",
+            "args": [
+                "--syntax=f",
+                "--sld",
+                "--fullpath",
+                "--outprefix=build/",
+                "FillScreen2.asm.asm"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$sjasmplus",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            }
+        }
+    ]
+}
+
