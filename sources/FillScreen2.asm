@@ -6,15 +6,25 @@ Start:
     ld c, 0      ; x
     ld b, 0      ; y
 
-MainCycle:
-    call SetPoint      ; Ставим точку
-    inc c               ; Переходим к следующему x
-    jr nz, MainCycle    ; Если не ноль, ставим следующую точку
-    inc b               ; А если x==0, то увеличиваем y на единицу
+.loop:
+    push bc
+    ld a, 255
+    call DrawHLine
+    pop bc
+    inc b
     ld a, b
-    cp 176              ; Проверяем, достигли ли последней требуемой строки
-    jr nz, MainCycle    ;   
-    ret                 ; Выход из программы
+    cp 176
+    jr nz, .loop
+    ret
+    
+;    call SetPoint      ; Ставим точку
+;    inc c               ; Переходим к следующему x
+;    jr nz, MainCycle    ; Если не ноль, ставим следующую точку
+;    inc b               ; А если x==0, то увеличиваем y на единицу
+;    ld a, b
+;    cp 176              ; Проверяем, достигли ли последней требуемой строки
+;    jr nz, MainCycle    ;   
+;    ret                 ; Выход из программы
 
 Delay:
     push bc

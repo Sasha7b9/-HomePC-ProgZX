@@ -33,8 +33,6 @@ SetPoint:
     ld   (hl), a
     ret
 
-
-
     ALIGN 256
 BitTable:
     REPT 32
@@ -66,3 +64,16 @@ _Y  = _Y + 1
     REPT 64
         DB 0
     ENDR
+
+DrawHLine:
+    ; Вход: B = Y (0..191), C = X (0..255), А - длина
+    ; Портит: A, DE, HL, BC
+.loop:
+    push af
+    call SetPoint
+    pop af
+    inc c
+    dec a
+    jr nz, .loop
+    ret
+
