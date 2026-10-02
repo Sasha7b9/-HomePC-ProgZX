@@ -8,28 +8,11 @@ Start:
     ld de, 150
 
 .loop:
-    push bc
-    push de
-    ld a, e
-    call DrawVLine
-    pop de
-    dec de
-    pop bc
-    inc c
-    ld a, c
-    cp 140
-    jr nz, .loop
+    ld bc, 0x1010
+    ld de, 0x1010
+    call DrawRect
     ret
     
-;    call SetPoint      ; Ставим точку
-;    inc c               ; Переходим к следующему x
-;    jr nz, MainCycle    ; Если не ноль, ставим следующую точку
-;    inc b               ; А если x==0, то увеличиваем y на единицу
-;    ld a, b
-;    cp 176              ; Проверяем, достигли ли последней требуемой строки
-;    jr nz, MainCycle    ;   
-;    ret                 ; Выход из программы
-
 Delay:
     push bc
     ld bc, 0xFFF
