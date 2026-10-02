@@ -65,7 +65,7 @@ SetPoint1:
     add hl, hl
     add hl, hl
     
-    ld de, hl
+    ex de, hl
     pop hl
     
     add hl, de
