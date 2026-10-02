@@ -8,6 +8,8 @@ Start:
     ld bc, 0x0000   ; B = Y (16), C = X (16) Ч начальный левый верхний угол
     ld de, 0x1010   ; D = Ўирина (16), E = ¬ысота (16) Ч начальный размер
     ld h, 35         ; —чЄтчик цикла: нужно нарисовать 5 пр€моугольников
+    
+    call ApplyDrawMode
 
 .loop_rect:
     push bc
@@ -93,7 +95,7 @@ Start:
     jr nz, .loop_line_h2
 
 ; *** –исуем вертикальные линии
-    ld bc, 0x9020
+    ld bc, 0x8000
     ld a, 1
 .loop_line_v:
     push af
