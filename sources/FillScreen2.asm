@@ -5,19 +5,19 @@
 Start:
     ld c, 0      ; x
     ld b, 0      ; y
-    ld de, 255
+    ld de, 150
 
 .loop:
     push bc
     push de
     ld a, e
-    call DrawHLine
+    call DrawVLine
     pop de
     dec de
     pop bc
-    inc b
-    ld a, b
-    cp 176
+    inc c
+    ld a, c
+    cp 140
     jr nz, .loop
     ret
     
