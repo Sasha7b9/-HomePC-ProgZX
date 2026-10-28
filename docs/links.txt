@@ -1,1 +1,4 @@
 https://github.com/chernandezba/zesarux
+
+// Fuse - the Free Unix Spectrum Emulator
+https://sourceforge.net/projects/fuse-emulator/
