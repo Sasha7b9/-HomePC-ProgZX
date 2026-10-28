@@ -1,0 +1,37 @@
+
+
+Listing of `Krakout (1987)(Gremlin Graphics).tzx':
+
+--= Block #0 =--
+  Block type 0x30 (Comment)
+  Block duration: 0.00 sec
+  Comment: Created with Ramsoft MakeTZX
+
+--= Block #1 =--
+  Block type 0x10 (Standard Speed Data)
+  Block duration: 6.09 sec
+  Block length: 19 bytes
+  Block header, zxlength: 320, parameter1: 0, parameter2: 320
+  Raw header: 00 | 4b 52 41 4b 4f 55 54 20 20 20 | 40 01 | 00 00 | 40 01
+  Program: "KRAKOUT" LINE 0
+  Length: 320, includes variable length: 0
+  Checksum: 0x7d (PASS)
+  Pause length: 1003 ms
+
+--= Block #2 =--
+  Block type 0x10 (Standard Speed Data)
+  Block duration: 7.11 sec
+  Block length: 322 bytes
+  Datablock length: 320
+  Checksum: 0xd5 (PASS)
+  Pause length: 3292 ms
+
+--= Block #3 =--
+  Block type 0x10 (Standard Speed Data)
+  Block duration: 271.79 sec
+  Block length: 48798 bytes
+  Datablock length: 48796
+  Checksum: 0x6a (PASS)
+  Pause length: 12673 ms
+
+Total tape duration: 4 min, 44.99 sec
