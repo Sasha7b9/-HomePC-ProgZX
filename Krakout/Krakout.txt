@@ -1,0 +1,13 @@
+BASIC-загрузчик начинается с
+0 CLEAR 65535 0x0E 0x00 0x00 COPY COPY [пробел] 0x00:PRINT USR 65535
+
+При установке точки останова на 1FCFh (команда PRINT):
+
+$1FCF  CALL $2530      ; SYNTAX-Z
+$1FD2  CALL NZ, $1601  ; CHAN-OPEN
+$1FD5  CALL $0D4D      ; Temporary colour items
+$1FD8  CALL $1FDF               <- Здесь запускается игра
+
+$1FEA  CALL $1FFC       ; Print items
+
+$202C  CALL $24FB       ; SCANNING
